@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>レジ</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=JetBrains+Mono:wght@400;600;700&display=swap');
+
+:root {
+--bg:       #1a2a1e;
+--surface:  #243028;
+--card:     #2e3d32;
+--accent:   #7ec87e;
+--accent2:  #4a9a4a;
+--cream:    #f5f0e8;
+--muted:    #8aaa8e;
+--danger:   #e07070;
+--border:   #3a4e3e;
+--text:     #f5f0e8;
+--subtext:  #a8c0aa;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+body {
+font-family: 'Noto Sans JP', sans-serif;
+background: var(--bg);
+color: var(--text);
+min-height: 100dvh;
+display: flex;
+flex-direction: column;
+max-width: 430px;
+margin: 0 auto;
+}
+
+/* ── ヘッダー ── */
+header {
+background: var(--surface);
+border-bottom: 1px solid var(--border);
+padding: 14px 16px 12px;
+display: flex;
+align-items: center;
+justify-content: space-between;
+position: sticky;
+top: 0;
+z-index: 10;
+}
+header h1 {
+font-size: 18px;
+font-weight: 700;
+letter-spacing: .04em;
+color: var(--accent);
+}
+.tax-badge {
+font-size: 11px;
+background: var(--accent2);
+color: #fff;
+padding: 3px 8px;
+border-radius: 20px;
+font-weight: 700;
+letter-spacing: .05em;
+}
+
+/* ── 入力エリア ── */
+.input-area {
+background: var(--surface);
+border-bottom: 1px solid var(--border);
+padding: 14px 16px;
+display: flex;
+flex-direction: column;
+gap: 10px;
+}
+.input-row {
+display: flex;
+gap: 8px;
+}
+.field {
+display: flex;
+flex-direction: column;
+gap: 4px;
+}
+.field label {
+font-size: 10px;
+font-weight: 700;
+color: var(--muted);
+letter-spacing: .08em;
+text-transform: uppercase;
+}
+.field input {
+background: var(--card);
+border: 1.5px solid var(--border);
+border-radius: 10px;
+color: var(--text);
+font-family: 'Noto Sans JP', sans-serif;
+font-size: 15px;
+padding: 10px 12px;
+outline: none;
+transition: border-color .15s;
+width: 100%;
+-webkit-appearance: none;
+}
+.field input:focus {
+border-color: var(--accent);
+}
+.field input::placeholder { color: var(--muted); }
+.field.name  { flex: 1; }
+.field.price { width: 110px; }
+.field.qty   { width: 80px; }
+.field.mono input {
+font-family: 'JetBrains Mono', monospace;
+font-size: 16px;
+}
+
+.add-btn {
+width: 100%;
+background: var(--accent2);
+color: #fff;
+border: none;
+border-radius: 12px;
+padding: 13px;
+font-size: 15px;
+font-weight: 700;
+font-family: 'Noto Sans JP', sans-serif;
+letter-spacing: .05em;
+cursor: pointer;
+transition: background .15s, transform .08s;
+active-scale: .97;
+}
+.add-btn:active { background: #3a7a3a; transform: scale(.97); }
+
+/* ── 商品リスト ── */
+.items-wrap {
+flex: 1;
+overflow-y: auto;
+padding: 12px 16px;
+display: flex;
+flex-direction: column;
+gap: 8px;
+}
+
+.empty-msg {
+text-align: center;
+color: var(--muted);
+font-size: 13px;
+margin-top: 32px;
+line-height: 1.8;
+}
+.empty-msg .icon { font-size: 36px; display: block; margin-bottom: 8px; }
+
+.item-card {
+background: var(--card);
+border: 1px solid var(--border);
+border-radius: 12px;
+padding: 12px 14px;
+display: grid;
+grid-template-columns: 1fr auto;
+gap: 2px 8px;
+position: relative;
+}
+.item-name {
+font-size: 14px;
+font-weight: 500;
+color: var(--text);
+grid-column: 1;
+white-space: nowrap;
+overflow: hidden;
+text-overflow: ellipsis;
+}
+.item-sub {
+font-size: 11px;
+color: var(--subtext);
+grid-column: 1;
+font-family: 'JetBrains Mono', monospace;
+margin-top: 2px;
+}
+.item-total {
+font-family: 'JetBrains Mono', monospace;
+font-size: 17px;
+font-weight: 700;
+color: var(--accent);
+grid-column: 2;
+grid-row: 1;
+align-self: center;
+text-align: right;
+white-space: nowrap;
+}
+.del-btn {
+position: absolute;
+top: 8px;
+right: 8px;
+background: none;
+border: none;
+color: var(--danger);
+font-size: 18px;
+cursor: pointer;
+padding: 4px 6px;
+border-radius: 6px;
+line-height: 1;
+display: none;
+}
+.item-card.editing .del-btn { display: block; }
+.item-total-col {
+grid-column: 2;
+grid-row: 1 / 3;
+display: flex;
+align-items: center;
+}
+
+/* ── フッター合計 ── */
+footer {
+background: var(--surface);
+border-top: 1px solid var(--border);
+padding: 16px 16px 24px;
+}
+.totals {
+display: flex;
+flex-direction: column;
+gap: 6px;
+margin-bottom: 14px;
+}
+.total-row {
+display: flex;
+justify-content: space-between;
+align-items: center;
+}
+.total-label {
+font-size: 12px;
+color: var(--subtext);
+font-weight: 500;
+letter-spacing: .04em;
+}
+.total-val {
+font-family: 'JetBrains Mono', monospace;
+font-size: 14px;
+color: var(--subtext);
+font-weight: 600;
+}
+.divider {
+border: none;
+border-top: 1px dashed var(--border);
+margin: 6px 0;
+}
+.total-row.grand .total-label {
+font-size: 15px;
+color: var(--text);
+font-weight: 700;
+}
+.total-row.grand .total-val {
+font-size: 22px;
+color: var(--accent);
+font-weight: 700;
+}
+
+.footer-btns {
+display: flex;
+gap: 10px;
+}
+.clear-btn {
+flex: 1;
+background: transparent;
+border: 1.5px solid var(--danger);
+color: var(--danger);
+border-radius: 12px;
+padding: 13px;
+font-size: 14px;
+font-weight: 700;
+font-family: 'Noto Sans JP', sans-serif;
+cursor: pointer;
+letter-spacing: .04em;
+transition: background .15s;
+}
+.clear-btn:active { background: rgba(224,112,112,.15); }
+.pay-btn {
+flex: 2;
+background: var(--accent);
+border: none;
+color: #1a2a1e;
+border-radius: 12px;
+padding: 13px;
+font-size: 15px;
+font-weight: 700;
+font-family: 'Noto Sans JP', sans-serif;
+cursor: pointer;
+letter-spacing: .05em;
+transition: background .15s, transform .08s;
+}
+.pay-btn:active { background: #6ab86a; transform: scale(.97); }
+
+/* ── モーダル ── */
+.modal-overlay {
+display: none;
+position: fixed;
+inset: 0;
+background: rgba(0,0,0,.7);
+z-index: 100;
+align-items: flex-end;
+}
+.modal-overlay.show { display: flex; }
+.modal {
+background: var(--surface);
+border-radius: 20px 20px 0 0;
+padding: 24px 20px 40px;
+width: 100%;
+text-align: center;
+}
+.modal h2 {
+font-size: 18px;
+font-weight: 700;
+color: var(--accent);
+margin-bottom: 20px;
+}
+.receipt-row {
+display: flex;
+justify-content: space-between;
+font-size: 13px;
+padding: 4px 0;
+color: var(--subtext);
+}
+.receipt-total {
+font-size: 28px;
+font-family: 'JetBrains Mono', monospace;
+font-weight: 700;
+color: var(--accent);
+margin: 16px 0 6px;
+}
+.receipt-note { font-size: 11px; color: var(--muted); margin-bottom: 20px; }
+.modal-close {
+width: 100%;
+background: var(--card);
+border: 1.5px solid var(--border);
+color: var(--text);
+border-radius: 12px;
+padding: 14px;
+font-size: 15px;
+font-weight: 700;
+font-family: 'Noto Sans JP', sans-serif;
+cursor: pointer;
+margin-top: 10px;
+}
+</style>
+
+</head>
+<body>
+
+<header>
+  <h1>🧾 レジ</h1>
+  <span class="tax-badge">消費税 10%</span>
+</header>
+
+<div class="input-area">
+  <div class="input-row">
+    <div class="field name">
+      <label>商品名</label>
+      <input type="text" id="itemName" placeholder="例：コーヒー" autocomplete="off">
+    </div>
+    <div class="field price mono">
+      <label>単価（円）</label>
+      <input type="number" id="itemPrice" placeholder="0" min="0" inputmode="decimal">
+    </div>
+  </div>
+  <div class="input-row">
+    <div class="field qty mono">
+      <label>数量</label>
+      <input type="number" id="itemQty" placeholder="1" min="0" step="any" inputmode="decimal">
+    </div>
+    <div class="field" style="flex:1; justify-content:flex-end;">
+      <label style="opacity:0">　</label>
+      <button class="add-btn" onclick="addItem()">＋ 追加</button>
+    </div>
+  </div>
+</div>
+
+<div class="items-wrap" id="itemList">
+  <div class="empty-msg">
+    <span class="icon">🛒</span>
+    商品を追加してください
+  </div>
+</div>
+
+<footer>
+  <div class="totals">
+    <div class="total-row">
+      <span class="total-label">税抜合計</span>
+      <span class="total-val" id="subtotalDisp">¥0</span>
+    </div>
+    <div class="total-row">
+      <span class="total-label">消費税（10%）</span>
+      <span class="total-val" id="taxDisp">¥0</span>
+    </div>
+    <hr class="divider">
+    <div class="total-row grand">
+      <span class="total-label">お会計（税込）</span>
+      <span class="total-val" id="totalDisp">¥0</span>
+    </div>
+  </div>
+  <div class="footer-btns">
+    <button class="clear-btn" onclick="clearAll()">クリア</button>
+    <button class="pay-btn" onclick="showModal()">お会計</button>
+  </div>
+</footer>
+
+<!-- お会計モーダル -->
+
+<div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+  <div class="modal">
+    <h2>お会計</h2>
+    <div id="receiptItems"></div>
+    <hr class="divider" style="margin:12px 0">
+    <div class="receipt-row"><span>税抜合計</span><span id="mSubtotal">¥0</span></div>
+    <div class="receipt-row"><span>消費税（10%）</span><span id="mTax">¥0</span></div>
+    <div class="receipt-total" id="mTotal">¥0</div>
+    <div class="receipt-note">※ 税込金額は10の位以下切り捨て</div>
+    <button class="modal-close" onclick="closeModal()">閉じる</button>
+  </div>
+</div>
+
+<script>
+  let items = [];
+
+  function fmt(n) {
+    return '¥' + Math.round(n).toLocaleString('ja-JP');
+  }
+  function fmtD(n) {
+    return '¥' + n.toLocaleString('ja-JP', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+  }
+
+  // 税込 → 10の位以下切り捨て（100円単位）
+  function calcIncl(price, qty) {
+    const rawIncl = price * qty * 1.1;
+    return Math.floor(rawIncl / 100) * 100;
+  }
+
+  function addItem() {
+    const nameEl  = document.getElementById('itemName');
+    const priceEl = document.getElementById('itemPrice');
+    const qtyEl   = document.getElementById('itemQty');
+
+    const name  = nameEl.value.trim() || '商品';
+    const price = parseFloat(priceEl.value);
+    const qty   = parseFloat(qtyEl.value);
+
+    if (isNaN(price) || price < 0) { priceEl.focus(); return; }
+    if (isNaN(qty)   || qty   <= 0) { qtyEl.focus();   return; }
+
+    const inclTotal = calcIncl(price, qty);
+    // 税込から税抜・税額を逆算
+    const exclTotal = Math.round(inclTotal / 1.1);
+    const taxTotal  = inclTotal - exclTotal;
+
+    items.push({ name, price, qty, inclTotal, exclTotal, taxTotal });
+    render();
+
+    // 商品名だけクリア、単価・数量はそのまま
+    nameEl.value = '';
+    nameEl.focus();
+  }
+
+  function deleteItem(i) {
+    items.splice(i, 1);
+    render();
+  }
+
+  function render() {
+    const list = document.getElementById('itemList');
+
+    if (items.length === 0) {
+      list.innerHTML = '<div class="empty-msg"><span class="icon">🛒</span>商品を追加してください</div>';
+      updateTotals(0, 0, 0);
+      return;
+    }
+
+    let totalIncl = 0, totalExcl = 0, totalTax = 0;
+    items.forEach(it => {
+      totalIncl += it.inclTotal;
+      totalExcl += it.exclTotal;
+      totalTax  += it.taxTotal;
+    });
+
+    list.innerHTML = items.map((it, i) => {
+      const qtyStr = it.qty % 1 === 0 ? it.qty.toFixed(0) : it.qty.toString();
+      return `
+      <div class="item-card" onclick="toggleEdit(this)">
+        <button class="del-btn" onclick="event.stopPropagation();deleteItem(${i})">✕</button>
+        <span class="item-name">${escHtml(it.name)}</span>
+        <span class="item-sub">¥${it.price.toLocaleString()} × ${qtyStr} ／ 税抜¥${it.exclTotal.toLocaleString()} 税¥${it.taxTotal.toLocaleString()}</span>
+        <div class="item-total-col">
+          <span class="item-total">¥${it.inclTotal.toLocaleString()}</span>
+        </div>
+      </div>`;
+    }).join('');
+
+    updateTotals(totalIncl, totalExcl, totalTax);
+  }
+
+  function toggleEdit(card) {
+    card.classList.toggle('editing');
+  }
+
+  function updateTotals(incl, excl, tax) {
+    document.getElementById('subtotalDisp').textContent = fmt(excl);
+    document.getElementById('taxDisp').textContent      = fmt(tax);
+    document.getElementById('totalDisp').textContent    = fmt(incl);
+  }
+
+  function clearAll() {
+    if (items.length === 0) return;
+    if (!confirm('明細をすべてクリアしますか？')) return;
+    items = [];
+    render();
+  }
+
+  function showModal() {
+    if (items.length === 0) return;
+    let totalIncl = 0, totalExcl = 0, totalTax = 0;
+    let rows = '';
+    items.forEach(it => {
+      totalIncl += it.inclTotal;
+      totalExcl += it.exclTotal;
+      totalTax  += it.taxTotal;
+      const qtyStr = it.qty % 1 === 0 ? it.qty.toFixed(0) : it.qty.toString();
+      rows += `<div class="receipt-row"><span>${escHtml(it.name)} ×${qtyStr}</span><span>¥${it.inclTotal.toLocaleString()}</span></div>`;
+    });
+    document.getElementById('receiptItems').innerHTML = rows;
+    document.getElementById('mSubtotal').textContent = fmt(totalExcl);
+    document.getElementById('mTax').textContent      = fmt(totalTax);
+    document.getElementById('mTotal').textContent    = fmt(totalIncl);
+    document.getElementById('modalOverlay').classList.add('show');
+  }
+
+  function closeModal(e) {
+    if (!e || e.target === document.getElementById('modalOverlay')) {
+      document.getElementById('modalOverlay').classList.remove('show');
+    }
+  }
+
+  function escHtml(str) {
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  // Enterキーで次フィールドへ
+  document.getElementById('itemName').addEventListener('keydown', e => {
+    if (e.key === 'Enter') document.getElementById('itemPrice').focus();
+  });
+  document.getElementById('itemPrice').addEventListener('keydown', e => {
+    if (e.key === 'Enter') document.getElementById('itemQty').focus();
+  });
+  document.getElementById('itemQty').addEventListener('keydown', e => {
+    if (e.key === 'Enter') addItem();
+  });
+</script>
+
+</body>
+</html>
